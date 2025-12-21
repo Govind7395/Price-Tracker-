@@ -33,6 +33,7 @@ Price_Tracker/
 ├── requirements.txt       # Python dependencies
 ├── README.md
 └── __init__.py
+```
 
 
 ---
