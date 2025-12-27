@@ -18,9 +18,6 @@ from .db_helper import (
 
 LOG_PATH = f"{LOG_DIR}/amazon.log"
 
-
-LOG_PATH = f"{LOG_DIR}/amazon.log"
-
 logger = logging.getLogger("amazon")
 logger.setLevel(logging.INFO)
 
