@@ -5,7 +5,9 @@ import psycopg2
 import os
 from psycopg2.extras import RealDictCursor
 from constants import ADMIN_API_KEY, USER_API_KEY
-from products import get_connection
+from products import get_connection, create_product_db
+from db_helper import price_history_table
+from price_drop_alert import create_price_alerts_table
 
 BASE_DIR = Path(__file__).resolve().parent
 # templates = Jinja2Templates(directory=BASE_DIR / "templates")
@@ -20,6 +22,20 @@ def startup_checks():
 
     if not os.getenv("DATABASE_URL"):
         raise RuntimeError("DATABASE_URL not configured")
+
+
+@app.on_event("startup")
+def database():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    create_product_db(cursor)
+    price_history_table(cursor)
+    create_price_alerts_table(cursor)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 
 def verify_user_key(x_api_key: str = Header(...)):
