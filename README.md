@@ -1,15 +1,15 @@
 # Price Tracker 
 
-A Python-based price tracking system that monitors product prices on **Amazon** and **Flipkart**, stores historical data in SQLite, and triggers price-drop alerts.
+A Python-based price tracking system that monitors product prices on **Amazon** and **Flipkart**, stores historical data in postgreSQL, and triggers price-drop alerts.
 
-Built with **Playwright** for scraping and **SQLite** for persistence.
+Built with **Playwright** for scraping and **postgreSQL** for persistence.
 
 ---
 
 ## Features
 
 - Scrapes prices from Amazon & Flipkart
-- Stores full price history in SQLite
+- Stores full price history in postgreSQL
 - Detects percentage-based price drops
 - Structured logging (per site + runner)
 - Can be automated using Windows Task Scheduler
@@ -83,7 +83,7 @@ logs/
 ---
 
 ## Database
-- Uses SQLite
+- Uses postgreSQL
 - Automatically creates required tables
 - Tracks:
    - Products
