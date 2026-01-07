@@ -1,7 +1,11 @@
 import time
 import logging
+
 from .constants import LOG_DIR
 from . import amazon, flipkart
+from .products import create_product_db, get_connection
+from .db_helper import price_history_table
+from .price_drop_alert import create_price_alerts_table
 
 logging.basicConfig(
     filename=f"{LOG_DIR}/runner.log",
@@ -15,6 +19,19 @@ logger = logging.getLogger("runner")
 def main():
     logger.info("Daily scraping started")
 
+    # 🔥 DB bootstrap (RUN ONCE)
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    create_product_db(cursor)
+    price_history_table(cursor)
+    create_price_alerts_table(cursor)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    # Scrapers
     try:
         amazon.main()
     except Exception:
