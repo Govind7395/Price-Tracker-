@@ -4,7 +4,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from pathlib import Path
 
-from .constants import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from constants import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 
 BASE_DIR = Path(__file__).resolve().parent

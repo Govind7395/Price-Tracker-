@@ -1,11 +1,11 @@
 import time
 import logging
 
-from .constants import LOG_DIR
-from . import amazon, flipkart
-from .products import create_product_db, get_connection
-from .db_helper import price_history_table
-from .price_drop_alert import create_price_alerts_table
+from constants import LOG_DIR
+import amazon, flipkart
+from products import create_product_db, get_connection
+from db_helper import price_history_table
+from price_drop_alert import create_price_alerts_table
 
 logging.basicConfig(
     filename=f"{LOG_DIR}/runner.log",

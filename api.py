@@ -4,8 +4,8 @@ from pathlib import Path
 import psycopg2
 import os
 from psycopg2.extras import RealDictCursor
-from .constants import ADMIN_API_KEY, USER_API_KEY
-from .products import get_connection
+from constants import ADMIN_API_KEY, USER_API_KEY
+from products import get_connection
 
 BASE_DIR = Path(__file__).resolve().parent
 # templates = Jinja2Templates(directory=BASE_DIR / "templates")

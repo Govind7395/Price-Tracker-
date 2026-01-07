@@ -5,10 +5,10 @@ import random
 import logging
 from playwright.sync_api import sync_playwright
 
-from .constants import LOG_DIR
-from .products import get_connection
-from .price_drop_alert import create_price_alerts_table, check_price_drop
-from .db_helper import (
+from constants import LOG_DIR
+from products import get_connection
+from price_drop_alert import create_price_alerts_table, check_price_drop
+from db_helper import (
     get_products_to_scrape,
     price_history_table,
     insert_price,
@@ -42,7 +42,6 @@ def scrape_flipkart_product(url):
 
         page.goto(url, timeout=60000)
         page.wait_for_load_state("networkidle")
-
         price_text = None
 
         selectors = ['div[class="hZ3P6w bnqy13"]', 'div[class="hZ3P6w DeU9vF"]']
