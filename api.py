@@ -1,10 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi import Header, HTTPException, Depends
-from fastapi.responses import HTMLResponse
 from pathlib import Path
 import psycopg2
 from psycopg2.extras import RealDictCursor
-
 from .constants import ADMIN_API_KEY, USER_API_KEY
 from .products import get_connection
 
@@ -26,10 +24,15 @@ def verify_admin_key(x_api_key: str = Header(...)):
     return x_api_key
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/api/products")
 def get_products(api_key: str = Depends(verify_user_key)):
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     cursor.execute(
         """
@@ -57,7 +60,7 @@ def get_products(api_key: str = Depends(verify_user_key)):
     return products
 
 
-@app.post("/api/admin/products")
+@app.post("/api/admin/products", status_code=201)
 def add_product(
     name: str, platform: str, url: str, api_key: str = Depends(verify_admin_key)
 ):
