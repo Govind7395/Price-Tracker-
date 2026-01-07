@@ -2,10 +2,11 @@ import re
 import os
 import time
 import random
-import sqlite3
 import logging
 from playwright.sync_api import sync_playwright
-from .constants import DB_PATH, LOG_DIR
+
+from .constants import LOG_DIR
+from .products import get_connection
 from .price_drop_alert import create_price_alerts_table, check_price_drop
 from .db_helper import (
     get_products_to_scrape,
@@ -67,20 +68,26 @@ def scrape_flipkart_product(url):
 
 
 def main():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
 
-    create_price_alerts_table(cursor)
-    price_history_table(cursor)
+    # create_price_alerts_table(cursor)
+    # price_history_table(cursor)
+    # conn.commit()
 
     products = get_products_to_scrape(cursor, "flipkart")
 
     if not products:
         logger.info("No Flipkart Products Found")
+        cursor.close()
         conn.close()
         return
 
-    for product_id, name, url in products:
+    for product in products:
+        product_id = product["id"]
+        name = product["name"]
+        url = product["url"]
+
         logger.info(f"Scraping: {name}")
 
         try:
@@ -109,6 +116,7 @@ def main():
 
         time_delay()
 
+    cursor.close()
     conn.close()
     logger.info("All Flipkart products scraped")
 
