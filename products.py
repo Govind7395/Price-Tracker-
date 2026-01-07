@@ -1,18 +1,35 @@
 import os
 import json
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from pathlib import Path
-from .constants import DB_PATH
+
+from .constants import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 
-SEED_FILES = ["amazon_products.json", "flipkart_products.json"]
+BASE_DIR = Path(__file__).resolve().parent
+SEED_FILES = [
+    BASE_DIR / "amazon_products.json",
+    BASE_DIR / "flipkart_products.json",
+]
+
+
+def get_connection():
+    return psycopg2.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        cursor_factory=RealDictCursor,
+    )
 
 
 def create_product_db(cursor):
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             platform TEXT NOT NULL,
             url TEXT NOT NULL UNIQUE,
@@ -30,8 +47,9 @@ def seed_products(cursor, json_path):
     for product in products:
         cursor.execute(
             """
-            INSERT OR IGNORE INTO products (name, platform, url, last_scraped_at)
-            VALUES (?, ?,?, NULL)
+            INSERT INTO products (name, platform, url, last_scraped_at)
+            VALUES (%s, %s,%s, NULL)
+            ON CONFLICT (url) DO NOTHING 
             """,
             (
                 product["name"].strip(),
@@ -43,16 +61,19 @@ def seed_products(cursor, json_path):
 
 def main():
     print("Inside Main")
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
 
     create_product_db(cursor)
 
     for seed_file in SEED_FILES:
-        if Path(seed_file).exists():
+        if seed_file.exists():
             seed_products(cursor, seed_file)
+        else:
+            print(f"Seed file not found: {seed_file}")
 
     conn.commit()
+    cursor.close()
     conn.close()
 
 

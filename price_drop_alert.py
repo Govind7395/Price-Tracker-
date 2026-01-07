@@ -1,6 +1,3 @@
-import sqlite3
-
-
 PRICE_DROP_PERCENT = 3
 
 
@@ -8,13 +5,12 @@ def create_price_alerts_table(cursor):
     cursor.execute(
         """
             CREATE TABLE IF NOT EXISTS price_alerts(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-             product_id INTEGER NOT NULL,
-              old_price INTEGER NOT NULL,
-               new_price INTEGER NOT NULL,
-                drop_percent REAL NOT NULL,
-                 triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                  FOREIGN KEY (product_id) REFERENCES products(id)
+            id SERIAL PRIMARY KEY,
+             product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+              old_price NUMERIC NOT NULL,
+               new_price NUMERIC NOT NULL,
+                drop_percent NUMERIC NOT NULL,
+                 triggered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """
     )
@@ -25,7 +21,7 @@ def get_last_two_prices(cursor, product_id):
         """
             SELECT price
             FROM price_history
-            WHERE product_id = ?
+            WHERE product_id = %s
             ORDER BY scraped_at DESC
             LIMIT 2
             """,
@@ -48,7 +44,7 @@ def insert_price_alert(cursor, product_id, old_price, new_price, drop_percent):
     cursor.execute(
         """
             INSERT INTO price_alerts (product_id, old_price, new_price, drop_percent)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
               """,
         (product_id, old_price, new_price, drop_percent),
     )
@@ -60,8 +56,8 @@ def check_price_drop(cursor, product_id):
     if not prices:
         return None
 
-    new_price = prices[0][0]
-    old_price = prices[1][0]
+    new_price = prices[0]["price"]
+    old_price = prices[1]["price"]
 
     drop = calculate_price_drop(old_price, new_price)
 
