@@ -1,11 +1,11 @@
-import sqlite3
 import re
-import os
 import time
 import random
 import logging
 from playwright.sync_api import sync_playwright
-from .constants import DB_PATH, LOG_DIR
+
+from .constants import LOG_DIR
+from .products import get_connection
 from .price_drop_alert import create_price_alerts_table, check_price_drop
 from .db_helper import (
     get_products_to_scrape,
@@ -37,10 +37,26 @@ def time_delay():
 def scrape_amazon_price(url):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        context = browser.new_context(
+            viewport={"width": 1280, "height": 800}, locale="en-IN"
+        )
+        page = context.new_page()
+
+        def handle_continue_shopping(page):
+            if page.locator("text=Continue shopping").count() > 0:
+                page.wait_for_timeout(random.randint(2000, 4000))
+
+                page.locator("button:has-text('Continue shopping')").click()
+                page.wait_for_load_state("domcontentloaded")
+                page.wait_for_selector("#productTitle", timeout=20000)
 
         page.goto(url, timeout=60000)
-        page.wait_for_timeout(3000)
+        handle_continue_shopping(page)
+
+        page.wait_for_selector(
+            "span.a-price-whole, #priceblock_ourprice, #priceblock_dealprice, span.a-price > span.a-offscreen",
+            timeout=20000,
+        )
 
         price_text = None
 
@@ -72,20 +88,26 @@ def scrape_amazon_price(url):
 
 
 def main():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
 
-    price_history_table(cursor)
-    create_price_alerts_table(cursor)
+    # price_history_table(cursor)
+    # create_price_alerts_table(cursor)
+    # conn.commit()
 
     products = get_products_to_scrape(cursor, "amazon")
 
     if not products:
         logger.info("No Amazon products found")
+        cursor.close()
         conn.close()
         return
 
-    for product_id, name, url in products:
+    for product in products:
+        product_id = product["id"]
+        name = product["name"]
+        url = product["url"]
+
         logger.info(f"Scraping: {name}")
 
         try:
@@ -114,6 +136,7 @@ def main():
 
         time_delay()
 
+    cursor.close()
     conn.close()
     logger.info("All Amazon products scraped")
 
