@@ -1,26 +1,21 @@
 from fastapi import FastAPI, Request
 from fastapi import Header, HTTPException, Depends
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from pathlib import Path
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-from .constants import DB_PATH, ADMIN_API_KEY, USER_API_KEY
+from .constants import ADMIN_API_KEY, USER_API_KEY
+from .products import get_connection
 
 BASE_DIR = Path(__file__).resolve().parent
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
+# templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 app = FastAPI(title="Price Tracker API")
 
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
 def verify_user_key(x_api_key: str = Header(...)):
-    if x_api_key != USER_API_KEY and x_api_key != ADMIN_API_KEY:
+    if x_api_key not in {USER_API_KEY, ADMIN_API_KEY}:
         raise HTTPException(status_code=403, detail="Invalid API Key")
     return x_api_key
 
@@ -33,7 +28,7 @@ def verify_admin_key(x_api_key: str = Header(...)):
 
 @app.get("/api/products")
 def get_products(api_key: str = Depends(verify_user_key)):
-    conn = get_db_connection()
+    conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
@@ -51,10 +46,12 @@ def get_products(api_key: str = Depends(verify_user_key)):
                 FROM price_history
                 WHERE product_id = p.id
             )
+        ORDER BY p.id
     """
     )
 
-    products = [dict(row) for row in cursor.fetchall()]
+    products = cursor.fetchall()
+    cursor.close()
     conn.close()
 
     return products
@@ -64,14 +61,17 @@ def get_products(api_key: str = Depends(verify_user_key)):
 def add_product(
     name: str, platform: str, url: str, api_key: str = Depends(verify_admin_key)
 ):
-    conn = get_db_connection()
+    conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
-        """INSERT INTO  products (name, platform, url) VALUES (?, ?, ?)""",
+        """INSERT INTO  products (name, platform, url) VALUES (%s, %s, %s)
+        ON CONFLICT (url) DO NOTHING
+        """,
         (name, platform, url),
     )
     conn.commit()
+    cursor.close()
     conn.close()
 
     return {"status": "product added"}
