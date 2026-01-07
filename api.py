@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi import Header, HTTPException, Depends
 from pathlib import Path
 import psycopg2
+import os
 from psycopg2.extras import RealDictCursor
 from .constants import ADMIN_API_KEY, USER_API_KEY
 from .products import get_connection
@@ -10,6 +11,15 @@ BASE_DIR = Path(__file__).resolve().parent
 # templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 app = FastAPI(title="Price Tracker API")
+
+
+@app.on_event("startup")
+def startup_checks():
+    if not ADMIN_API_KEY or not USER_API_KEY:
+        raise RuntimeError("API keys not configured")
+
+    if not os.getenv("DATABASE_URL"):
+        raise RuntimeError("DATABASE_URL not configured")
 
 
 def verify_user_key(x_api_key: str = Header(...)):
